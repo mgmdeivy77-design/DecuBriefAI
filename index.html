@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DocuBrief AI" />
+  <title>DocuBrief AI — PWA Móvil</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      overscroll-behavior-y: none;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      padding-top: var(--safe-top);
+      padding-bottom: calc(76px + var(--safe-bottom));
+    }
+
+    /* Tipografía editorial autocontenida */
+    .prose-editorial {
+      font-size: 15.5px !important;
+      line-height: 1.75 !important;
+      color: #1e293b !important;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    .prose-editorial h1 {
+      font-size: 20px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin-top: 1.2em !important;
+      margin-bottom: 0.55em !important;
+      line-height: 1.3 !important;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.3em;
+    }
+    .prose-editorial h2 {
+      font-size: 17.5px !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin-top: 1.25em !important;
+      margin-bottom: 0.45em !important;
+      line-height: 1.35 !important;
+    }
+    .prose-editorial h3 {
+      font-size: 15.5px !important;
+      font-weight: 600 !important;
+      color: #1e293b !important;
+      margin-top: 1em !important;
+      margin-bottom: 0.35em !important;
+    }
+    .prose-editorial p {
+      font-size: 15.5px !important;
+      margin-bottom: 0.85em !important;
+    }
+    .prose-editorial ul {
+      list-style-type: disc !important;
+      padding-left: 1.4em !important;
+      margin-bottom: 0.95em !important;
+    }
+    .prose-editorial ol {
+      list-style-type: decimal !important;
+      padding-left: 1.4em !important;
+      margin-bottom: 0.95em !important;
+    }
+    .prose-editorial li {
+      font-size: 15.5px !important;
+      margin-bottom: 0.4em !important;
+    }
+    .prose-editorial strong {
+      font-weight: 600 !important;
+      color: #0f172a !important;
+    }
+    .prose-editorial blockquote {
+      border-left: 3px solid #2563eb;
+      background-color: #f8fafc;
+      padding: 0.65em 0.9em;
+      margin: 0.9em 0;
+      border-radius: 0 0.5rem 0.5rem 0;
+      color: #334155;
+      font-style: italic;
+    }
+    .prose-editorial table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.9em 0;
+      font-size: 13.5px !important;
+      display: block;
+      overflow-x: auto;
+    }
+    .prose-editorial th, .prose-editorial td {
+      border: 1px solid #cbd5e1;
+      padding: 0.5em 0.7em;
+      text-align: left;
+    }
+    .prose-editorial th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    /* Flashcard 3D */
+    .perspective-1000 { perspective: 1000px; }
+    .transform-style-3d { transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1); }
+    .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .rotate-y-180 { transform: rotateY(180deg); }
+
+    .bottom-nav {
+      padding-bottom: calc(8px + var(--safe-bottom));
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; padding-bottom: 0 !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top App Bar Móvil -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 no-print">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+          D
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-base font-bold text-slate-900 leading-none">DocuBrief AI</h1>
+            <span id="offlineBadge" class="hidden text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">Modo Offline</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-0.5">App Móvil • Síntesis y Estudio</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="installPwaBtn" type="button" class="hidden items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white shadow-xs active:scale-95 transition">
+          <span>+ Instalar</span>
+        </button>
+
+        <button id="openApiKeyModalBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 active:bg-slate-200 text-slate-700 border border-slate-200 transition">
+          <span id="apiKeyDot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>API Key</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal (App Views) -->
+  <main class="flex-1 max-w-2xl w-full mx-auto px-3.5 py-4 space-y-4">
+
+    <!-- VISTA 1: CREAR / ENTRADA -->
+    <section id="view-create" class="app-view space-y-4 no-print">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-4">
+        <!-- Selector táctil de fuente -->
+        <div id="sourceTabList" class="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl">
+          <button type="button" data-source="file" class="source-tab flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-lg text-[11px] font-semibold bg-white text-blue-600 shadow-xs transition">
+            <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="pointer-events-none">Archivo</span>
+          </button>
+          <button type="button" data-source="audio" class="source-tab flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-lg text-[11px] font-semibold text-slate-600 transition">
+            <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            <span class="pointer-events-none">Audio</span>
+          </button>
+          <button type="button" data-source="url" class="source-tab flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-lg text-[11px] font-semibold text-slate-600 transition">
+            <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="pointer-events-none">YT / TikTok</span>
+          </button>
+          <button type="button" data-source="text" class="source-tab flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-lg text-[11px] font-semibold text-slate-600 transition">
+            <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+            <span class="pointer-events-none">Texto</span>
+          </button>
+        </div>
+
+        <!-- Panel: Documento -->
+        <div id="panel-file" class="source-panel space-y-3">
+          <div class="relative w-full border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-6 text-center bg-white cursor-pointer transition">
+            <input id="docFileInput" type="file" accept=".pdf,.docx,.txt,.md,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/octet-stream" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            <div class="pointer-events-none">
+              <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-2.5">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              </div>
+              <p class="text-sm font-semibold text-slate-800">Toca para elegir un documento</p>
+              <p class="text-xs text-slate-500 mt-1">PDF, Word (.docx), TXT, MD o CSV</p>
+              <span class="inline-block mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold shadow-xs">Explorar dispositivo</span>
+            </div>
+          </div>
+          <div id="docFileStatus" class="hidden p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p id="docFileName" class="text-xs font-semibold text-slate-800 truncate"></p>
+              <p id="docFileMeta" class="text-[11px] text-slate-500"></p>
+            </div>
+            <button type="button" id="clearDocBtn" class="text-xs text-rose-600 font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50">Quitar</button>
+          </div>
+        </div>
+
+        <!-- Panel: Audio -->
+        <div id="panel-audio" class="source-panel hidden space-y-3">
+          <div class="relative w-full border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-2xl p-6 text-center bg-white cursor-pointer transition">
+            <input id="audioFileInput" type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.opus,.aac,application/octet-stream" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+            <div class="pointer-events-none">
+              <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-2.5">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+              </div>
+              <p class="text-sm font-semibold text-slate-800">Toca para seleccionar un audio</p>
+              <p class="text-xs text-slate-500 mt-1">MP3, M4A, WAV, OGG o notas de WhatsApp (.opus)</p>
+              <span class="inline-block mt-3 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-xs">Elegir audio</span>
+            </div>
+          </div>
+          <div id="audioFileStatus" class="hidden p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p id="audioFileName" class="text-xs font-semibold text-slate-800 truncate"></p>
+              <p id="audioFileMeta" class="text-[11px] text-slate-600"></p>
+            </div>
+            <button type="button" id="clearAudioBtn" class="text-xs text-rose-600 font-semibold px-2.5 py-1.5 rounded-lg bg-rose-50">Quitar</button>
+          </div>
+          <p class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            💡 Si el audio viene de WhatsApp, guárdalo en <em>Descargas</em> antes de abrirlo. Máximo: 22 MB.
+          </p>
+        </div>
+
+        <!-- Panel: Enlace Exclusivo YouTube / TikTok -->
+        <div id="panel-url" class="source-panel hidden space-y-3">
+          <label for="urlInput" class="block text-xs font-semibold text-slate-700">Enlace público de YouTube o TikTok</label>
+          <div class="flex gap-2">
+            <input id="urlInput" type="url" inputmode="url" placeholder="https://youtube.com/... o https://tiktok.com/..." class="flex-1 px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            <button type="button" id="pasteUrlBtn" class="px-4 py-2.5 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold">Pegar</button>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            Analiza exclusivamente videos públicos de <strong>YouTube</strong> y <strong>TikTok</strong>: gancho inicial (hook), tesis, estructura y cierre.
+          </p>
+        </div>
+
+        <!-- Panel: Texto Directo -->
+        <div id="panel-text" class="source-panel hidden space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="rawTextInput" class="text-xs font-semibold text-slate-700">Pega o escribe el texto</label>
+            <span id="textStats" class="text-[11px] text-slate-500">0 palabras</span>
+          </div>
+          <textarea id="rawTextInput" rows="6" placeholder="Pega aquí artículos, apuntes o transcripciones..." class="w-full p-3.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-y"></textarea>
+        </div>
+
+        <!-- Opciones Editoriales -->
+        <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100">
+          <div>
+            <label for="structureSelect" class="block text-[11px] font-semibold text-slate-600 mb-1">Estructura</label>
+            <select id="structureSelect" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ejecutivo">Ejecutivo</option>
+              <option value="academico">Académico / Analítico</option>
+              <option value="secciones">Por Secciones</option>
+              <option value="accion">Plan de Acción</option>
+            </select>
+          </div>
+          <div>
+            <label for="depthSelect" class="block text-[11px] font-semibold text-slate-600 mb-1">Profundidad</label>
+            <select id="depthSelect" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="conciso">Conciso</option>
+              <option value="equilibrado" selected>Equilibrado</option>
+              <option value="exhaustivo">Exhaustivo</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label for="focusInput" class="block text-[11px] font-semibold text-slate-600 mb-1">Enfoque opcional</label>
+            <input id="focusInput" type="text" placeholder="Ej. hallazgos clínicos, métricas, ideas clave..." class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs outline-none" />
+          </div>
+        </div>
+
+        <!-- Alerta de Error -->
+        <div id="errorBanner" class="hidden p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-2">
+          <p id="errorText" class="font-medium"></p>
+          <button id="errorApiKeyAction" type="button" class="hidden px-3 py-2 rounded-lg bg-rose-600 text-white font-semibold text-xs">Configurar API Key</button>
+        </div>
+
+        <!-- Botón Generar -->
+        <button id="generateBtn" type="button" class="w-full py-3.5 px-5 rounded-xl bg-blue-600 active:bg-blue-700 text-white font-semibold text-sm shadow-sm flex items-center justify-center gap-2 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span>Generar Resumen y Estudio</span>
+        </button>
+      </div>
+
+      <!-- Estado de Carga -->
+      <div id="loadingState" class="hidden bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p id="loadingStepText" class="text-sm font-semibold text-slate-800">Procesando fuente...</p>
+        <p class="text-xs text-slate-500">Sintetizando evidencia y preparando tarjetas de estudio.</p>
+      </div>
+    </section>
+
+    <!-- VISTA 2: RESUMEN GENERADO -->
+    <section id="view-summary" class="app-view hidden space-y-3">
+      <div id="emptySummaryPlaceholder" class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+        <p class="text-sm font-semibold text-slate-700">Aún no hay un resumen activo</p>
+        <p class="text-xs text-slate-500">Crea uno nuevo en la pestaña <strong>Crear</strong> o abre uno desde tu <strong>Archivo</strong>.</p>
+      </div>
+
+      <div id="summaryContentWrapper" class="hidden space-y-3">
+        <!-- Acciones rápidas táctiles -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-2 grid grid-cols-4 gap-1.5 no-print">
+          <button type="button" id="saveArchiveBtn" class="py-2 px-2 rounded-xl bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold">Guardar</button>
+          <button type="button" id="shareSummaryBtn" class="py-2 px-2 rounded-xl bg-blue-50 active:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold">Compartir</button>
+          <button type="button" id="copySummaryBtn" class="py-2 px-2 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold">Copiar</button>
+          <button type="button" id="downloadMdBtn" class="py-2 px-2 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold">.MD</button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-5">
+          <div class="border-b border-slate-100 pb-3">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span id="resultBadge" class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">Síntesis Verificada</span>
+              <span id="resultTimestamp" class="text-[11px] text-slate-400"></span>
+            </div>
+            <h2 id="resultTitle" class="text-lg font-bold text-slate-900 leading-snug"></h2>
+          </div>
+
+          <article id="summaryOutput" class="prose-editorial"></article>
+
+          <div class="bg-amber-50/80 border border-amber-200 rounded-xl p-4 space-y-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-900">🔍 Auditoría Crítica de Evidencia</h3>
+            <ul id="criticalQuestionsList" class="list-disc pl-5 text-xs text-amber-950 space-y-1.5"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 3: CENTRO DE ESTUDIO ACTIVO -->
+    <section id="view-study" class="app-view hidden space-y-4">
+      <div id="emptyStudyPlaceholder" class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+        <p class="text-sm font-semibold text-slate-700">Centro de Estudio vacío</p>
+        <p class="text-xs text-slate-500">Genera un resumen primero para practicar con Flashcards, Quiz y Verdadero/Falso.</p>
+      </div>
+
+      <div id="studyContentWrapper" class="hidden space-y-4">
+        <!-- Marcador -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between">
+          <div class="flex items-center gap-4 text-xs">
+            <div>
+              <span class="text-slate-500 block text-[11px]">Tarjetas</span>
+              <strong id="flashcardScoreText" class="text-sm text-blue-600">0 / 0</strong>
+            </div>
+            <div class="h-7 w-px bg-slate-200"></div>
+            <div>
+              <span class="text-slate-500 block text-[11px]">Aciertos</span>
+              <strong id="quizScoreText" class="text-sm text-emerald-600">0 / 0</strong>
+            </div>
+          </div>
+          <button type="button" id="resetStudyBtn" class="px-3 py-2 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold">Reiniciar</button>
+        </div>
+
+        <!-- Flashcards 3D -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900">1. Tarjetas de Memoria</h3>
+            <span id="flashcardCounter" class="text-xs font-semibold text-slate-500">1 / 1</span>
+          </div>
+
+          <div id="flashcardContainer" class="perspective-1000 w-full h-56 cursor-pointer">
+            <div id="flashcardInner" class="relative w-full h-full transform-style-3d">
+              <div class="absolute inset-0 backface-hidden bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+                <span class="text-[10px] uppercase tracking-wider font-semibold text-blue-200">Toca para girar</span>
+                <p id="flashcardFrontText" class="text-base font-semibold text-center leading-snug"></p>
+                <span class="text-[11px] text-center text-blue-200">↻ Ver respuesta</span>
+              </div>
+              <div class="absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 text-white rounded-2xl p-5 flex flex-col justify-between shadow-sm">
+                <span class="text-[10px] uppercase tracking-wider font-semibold text-emerald-400">Evidencia</span>
+                <p id="flashcardBackText" class="text-sm text-center leading-relaxed overflow-y-auto"></p>
+                <span class="text-[11px] text-center text-slate-400">↻ Volver</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button type="button" id="prevCardBtn" class="py-2.5 rounded-xl bg-slate-100 active:bg-slate-200 text-xs font-semibold text-slate-700">← Anterior</button>
+            <button type="button" id="markMasteredBtn" class="py-2.5 rounded-xl bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold">✓ Lo domino</button>
+            <button type="button" id="nextCardBtn" class="py-2.5 rounded-xl bg-slate-100 active:bg-slate-200 text-xs font-semibold text-slate-700">Siguiente →</button>
+          </div>
+        </div>
+
+        <!-- Selección Múltiple -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+          <h3 class="text-sm font-bold text-slate-900">2. Selección Múltiple</h3>
+          <div id="mcqList" class="space-y-3.5"></div>
+        </div>
+
+        <!-- Verdadero o Falso -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+          <h3 class="text-sm font-bold text-slate-900">3. Verdadero o Falso</h3>
+          <div id="tfList" class="space-y-3"></div>
+        </div>
+
+        <!-- Reflexión -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+          <h3 class="text-sm font-bold text-slate-900">4. Preguntas de Reflexión</h3>
+          <div id="openQuestionsList" class="space-y-3.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 4: BIBLIOTECA / ARCHIVO -->
+    <section id="view-archive" class="app-view hidden space-y-3 no-print">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-slate-900">Biblioteca Archivada</h2>
+          <span id="archiveTotalLabel" class="text-xs font-semibold text-slate-500">0 guardados</span>
+        </div>
+        <input id="archiveSearchInput" type="search" placeholder="Buscar por título o contenido..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs outline-none" />
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" id="exportArchiveBtn" class="py-2 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold">Exportar .JSON</button>
+          <label for="importArchiveInput" class="py-2 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold text-center cursor-pointer">Importar .JSON</label>
+          <input id="importArchiveInput" type="file" accept=".json,application/json" class="sr-only" />
+        </div>
+      </div>
+
+      <div id="archiveListContainer" class="space-y-2.5"></div>
+    </section>
+
+  </main>
+
+  <!-- Barra de Navegación Inferior Fija -->
+  <nav class="fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 bottom-nav no-print">
+    <div class="max-w-2xl mx-auto grid grid-cols-4 pt-1.5 px-2">
+      <button type="button" data-nav="create" class="nav-btn flex flex-col items-center justify-center py-1 text-blue-600">
+        <svg class="w-5 h-5 mb-0.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-[11px] font-semibold pointer-events-none">Crear</span>
+      </button>
+      <button type="button" data-nav="summary" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-500">
+        <svg class="w-5 h-5 mb-0.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span class="text-[11px] font-semibold pointer-events-none">Resumen</span>
+      </button>
+      <button type="button" data-nav="study" class="nav-btn flex flex-col items-center justify-center py-1 text-slate-500">
+        <svg class="w-5 h-5 mb-0.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <span class="text-[11px] font-semibold pointer-events-none">Estudio</span>
+      </button>
+      <button type="button" data-nav="archive" class="nav-btn relative flex flex-col items-center justify-center py-1 text-slate-500">
+        <svg class="w-5 h-5 mb-0.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+        <span class="text-[11px] font-semibold pointer-events-none">Archivo (<span id="archiveCountBadge">0</span>)</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Modal API Key -->
+  <div id="apiKeyModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900">Configurar Gemini API Key</h3>
+        <button type="button" id="closeApiKeyModalBtn" class="text-slate-400 hover:text-slate-700 text-lg font-bold px-2">✕</button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Pega tu clave gratuita de <strong>Google AI Studio</strong>. Se guarda únicamente de forma local en tu celular.
+      </p>
+      <input id="apiKeyInput" type="password" placeholder="AIzaSy..." class="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="clearApiKeyBtn" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50">Borrar</button>
+        <button type="button" id="saveApiKeyBtn" class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold">Guardar clave</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => {
+          console.warn('SW registration skipped:', err);
+        });
+      });
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('installPwaBtn');
+      btn.classList.remove('hidden');
+      btn.classList.add('inline-flex');
+    });
+
+    document.getElementById('installPwaBtn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('installPwaBtn').classList.add('hidden');
+    });
+
+    function updateOnlineStatus() {
+      const badge = document.getElementById('offlineBadge');
+      if (navigator.onLine) badge.classList.add('hidden');
+      else badge.classList.remove('hidden');
+    }
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    function initPdfWorker() {
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+    }
+    initPdfWorker();
+
+    const STORAGE_KEY_API = 'docubrief_gemini_api_key';
+    const STORAGE_KEY_ARCHIVE = 'docubrief_archive_v1';
+
+    const state = {
+      activeView: 'create',
+      activeSource: 'file',
+      docText: '',
+      docName: '',
+      audioBase64: '',
+      audioMimeType: '',
+      audioName: '',
+      currentResult: null,
+      flashcardIndex: 0,
+      masteredCards: new Set(),
+      quizAnswers: {},
+      tfAnswers: {}
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function switchAppView(viewName) {
+      state.activeView = viewName;
+      document.querySelectorAll('.app-view').forEach(v => v.classList.add('hidden'));
+      $(`view-${viewName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.dataset.nav === viewName) {
+          btn.classList.remove('text-slate-500');
+          btn.classList.add('text-blue-600');
+        } else {
+          btn.classList.add('text-slate-500');
+          btn.classList.remove('text-blue-600');
+        }
+      });
+
+      if (viewName === 'archive') renderArchiveList();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchAppView(btn.dataset.nav));
+    });
+
+    async function fileToBase64MobileSafe(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      const chunkSize = 0x8000;
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      return btoa(binary);
+    }
+
+    function renderMarkdownSafe(mdText) {
+      if (!mdText) return '';
+      const normalized = String(mdText).replace(/\n/g, '\n');
+      try {
+        if (window.marked && typeof marked.parse === 'function') {
+          const rawHtml = marked.parse(normalized, { breaks: true, gfm: true });
+          return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        }
+      } catch (e) {}
+      return normalized
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^\* (.*$)/gim, '<ul><li>$1</li></ul>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function getApiKey() {
+      return localStorage.getItem(STORAGE_KEY_API) || '';
+    }
+    function updateApiKeyIndicator() {
+      const hasKey = Boolean(getApiKey().trim());
+      $('apiKeyDot').className = hasKey ? 'w-2 h-2 rounded-full bg-emerald-500' : 'w-2 h-2 rounded-full bg-amber-500';
+    }
+    $('openApiKeyModalBtn').addEventListener('click', () => {
+      $('apiKeyInput').value = getApiKey();
+      $('apiKeyModal').classList.remove('hidden');
+    });
+    $('closeApiKeyModalBtn').addEventListener('click', () => $('apiKeyModal').classList.add('hidden'));
+    $('saveApiKeyBtn').addEventListener('click', () => {
+      const val = $('apiKeyInput').value.trim();
+      if (val) localStorage.setItem(STORAGE_KEY_API, val);
+      updateApiKeyIndicator();
+      $('apiKeyModal').classList.add('hidden');
+      hideError();
+    });
+    $('clearApiKeyBtn').addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY_API);
+      $('apiKeyInput').value = '';
+      updateApiKeyIndicator();
+    });
+
+    $('sourceTabList').addEventListener('click', (e) => {
+      const btn = e.target.closest('.source-tab');
+      if (!btn) return;
+      const src = btn.dataset.source;
+      state.activeSource = src;
+
+      document.querySelectorAll('.source-tab').forEach(t => {
+        t.classList.remove('bg-white', 'text-blue-600', 'shadow-xs');
+        t.classList.add('text-slate-600');
+      });
+      btn.classList.add('bg-white', 'text-blue-600', 'shadow-xs');
+      btn.classList.remove('text-slate-600');
+
+      document.querySelectorAll('.source-panel').forEach(p => p.classList.add('hidden'));
+      $(`panel-${src}`).classList.remove('hidden');
+      hideError();
+    });
+
+    // Lector robusto de Documentos (PDF, Word, TXT)
+    $('docFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      hideError();
+      try {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const arrayBuffer = await file.arrayBuffer();
+        let extracted = '';
+
+        if (ext === 'pdf') {
+          if (!window.pdfjsLib) {
+            initPdfWorker();
+            if (!window.pdfjsLib) throw new Error('El lector de PDF aún está cargando o no hay conexión.');
+          }
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdf = await loadingTask.promise;
+          const pages = [];
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const textStr = content.items.map(item => item.str).join(' ');
+            pages.push(textStr);
+          }
+          extracted = pages.join('\n\n');
+        } else if (ext === 'docx') {
+          if (!window.mammoth) throw new Error('El lector de Word (.docx) aún está cargando.');
+          const res = await mammoth.extractRawText({ arrayBuffer });
+          extracted = res.value;
+        } else {
+          extracted = new TextDecoder('utf-8').decode(arrayBuffer);
+        }
+
+        if (!extracted.trim()) {
+          throw new Error('El archivo no contiene texto legible (si es un PDF escaneado como imagen, utiliza la pestaña "Texto").');
+        }
+
+        state.docText = extracted.trim();
+        state.docName = file.name;
+        $('docFileName').textContent = file.name;
+        $('docFileMeta').textContent = `${(file.size / 1024).toFixed(1)} KB • ${state.docText.split(/\s+/).length} palabras`;
+        $('docFileStatus').classList.remove('hidden');
+      } catch (err) {
+        showError(`Error al leer archivo: ${err.message}`);
+        e.target.value = '';
+      }
+    });
+
+    $('clearDocBtn').addEventListener('click', () => {
+      state.docText = '';
+      state.docName = '';
+      $('docFileInput').value = '';
+      $('docFileStatus').classList.add('hidden');
+    });
+
+    // Lector de Audio
+    $('audioFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      hideError();
+      try {
+        if (file.size > 22 * 1024 * 1024) {
+          throw new Error('El audio supera los 22 MB recomendados en móvil.');
+        }
+        const ext = file.name.split('.').pop().toLowerCase();
+        const mimeMap = { mp3: 'audio/mp3', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg', opus: 'audio/ogg' };
+        const mimeType = (file.type && file.type.startsWith('audio/')) ? file.type : (mimeMap[ext] || 'audio/mp3');
+
+        $('audioFileName').textContent = 'Cargando audio...';
+        $('audioFileStatus').classList.remove('hidden');
+
+        state.audioBase64 = await fileToBase64MobileSafe(file);
+        state.audioMimeType = mimeType;
+        state.audioName = file.name;
+
+        $('audioFileName').textContent = file.name;
+        $('audioFileMeta').textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB • Listo`;
+      } catch (err) {
+        $('audioFileStatus').classList.add('hidden');
+        showError(`Error al cargar audio: ${err.message}`);
+        e.target.value = '';
+      }
+    });
+
+    $('clearAudioBtn').addEventListener('click', () => {
+      state.audioBase64 = '';
+      state.audioMimeType = '';
+      state.audioName = '';
+      $('audioFileInput').value = '';
+      $('audioFileStatus').classList.add('hidden');
+    });
+
+    $('pasteUrlBtn').addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) $('urlInput').value = text.trim();
+      } catch {
+        $('urlInput').focus();
+      }
+    });
+
+    $('rawTextInput').addEventListener('input', (e) => {
+      const words = e.target.value.trim() ? e.target.value.trim().split(/\s+/).length : 0;
+      $('textStats').textContent = `${words} palabras`;
+    });
+
+    function showError(msg, showKeyBtn = false) {
+      $('errorText').textContent = msg;
+      $('errorBanner').classList.remove('hidden');
+      if (showKeyBtn) $('errorApiKeyAction').classList.remove('hidden');
+      else $('errorApiKeyAction').classList.add('hidden');
+    }
+    function hideError() {
+      $('errorBanner').classList.add('hidden');
+    }
+    $('errorApiKeyAction').addEventListener('click', () => $('openApiKeyModalBtn').click());
+
+    async function extractVideoContext(url) {
+      const isYT = /(youtube\.com|youtu\.be)/i.test(url);
+      const isTT = /tiktok\.com/i.test(url);
+      if (!isYT && !isTT) {
+        throw new Error('Solo se admiten enlaces públicos de YouTube o TikTok.');
+      }
+      let oembedInfo = '';
+      try {
+        const ep = isYT
+          ? `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+          : `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        const res = await fetch(ep);
+        if (res.ok) {
+          const d = await res.json();
+          oembedInfo = `Título: ${d.title || ''}\nAutor: ${d.author_name || ''}\n`;
+        }
+      } catch (_) {}
+
+      let pageText = '';
+      try {
+        const jinaRes = await fetch(`https://r.jina.ai/${url}`);
+        if (jinaRes.ok) pageText = await jinaRes.text();
+      } catch (_) {}
+
+      const combined = `${oembedInfo}\nURL: ${url}\n\nContenido:\n${pageText.slice(0, 18000)}`;
+      if (!oembedInfo && pageText.length < 100) {
+        throw new Error('No se pudo leer el video público. Verifica el enlace o pega la transcripción en Texto.');
+      }
+      return { platform: isYT ? 'YouTube' : 'TikTok', content: combined };
+    }
+
+    $('generateBtn').addEventListener('click', async () => {
+      hideError();
+      if (!navigator.onLine) {
+        showError('Estás sin conexión a internet. Necesitas red para generar nuevos resúmenes, pero puedes consultar tu Archivo.');
+        return;
+      }
+      const apiKey = getApiKey().trim();
+      if (!apiKey) {
+        showError('Configura tu Google Gemini API Key primero.', true);
+        return;
+      }
+
+      const structure = $('structureSelect').value;
+      const depth = $('depthSelect').value;
+      const focus = $('focusInput').value.trim();
+
+      let parts = [];
+      let sourceLabel = '';
+      let sourceTypeBadge = '';
+
+      try {
+        $('generateBtn').disabled = true;
+        $('loadingState').classList.remove('hidden');
+
+        if (state.activeSource === 'file') {
+          if (!state.docText) throw new Error('Selecciona primero un documento PDF, DOCX o TXT.');
+          sourceLabel = state.docName;
+          sourceTypeBadge = 'Documento';
+          parts.push({ text: `DOCUMENTO (${state.docName}):\n\n${state.docText.slice(0, 45000)}` });
+        } else if (state.activeSource === 'audio') {
+          if (!state.audioBase64) throw new Error('Selecciona primero un archivo de audio.');
+          sourceLabel = state.audioName;
+          sourceTypeBadge = 'Audio';
+          $('loadingStepText').textContent = 'Transcribiendo y sintetizando audio...';
+          parts.push({ inlineData: { mimeType: state.audioMimeType, data: state.audioBase64 } });
+          parts.push({ text: 'Transcribe fielmente y sintetiza el contenido completo de este audio.' });
+        } else if (state.activeSource === 'url') {
+          const url = $('urlInput').value.trim();
+          if (!url) throw new Error('Pega un enlace de YouTube o TikTok.');
+          $('loadingStepText').textContent = 'Analizando video...';
+          const videoData = await extractVideoContext(url);
+          sourceLabel = `${videoData.platform}: ${url}`;
+          sourceTypeBadge = videoData.platform;
+          parts.push({
+            text: `Analiza este video de ${videoData.platform} desglosando: 1) Gancho (Hook) inicial, 2) Tesis central, 3) Desarrollo y retención, 4) Conclusión o llamado a la acción.\n\n${videoData.content}`
+          });
+        } else if (state.activeSource === 'text') {
+          const raw = $('rawTextInput').value.trim();
+          if (raw.length < 30) throw new Error('Escribe o pega al menos un párrafo de texto.');
+          sourceLabel = raw.slice(0, 45) + '...';
+          sourceTypeBadge = 'Texto';
+          parts.push({ text: `TEXTO FUENTE:\n\n${raw.slice(0, 45000)}` });
+        }
+
+        $('loadingStepText').textContent = 'Estructurando resumen y tarjetas de estudio...';
+
+        const systemPrompt = `Eres un analista experto. Responde en español con rigor y estricto apego a la evidencia proporcionada.
+Estructura: ${structure} | Detalle: ${depth} ${focus ? `| Enfoque: ${focus}` : ''}
+
+Devuelve ÚNICAMENTE un JSON válido con este formato:
+{
+  "title": "Título claro y descriptivo",
+  "summary_markdown": "Resumen profesional en Markdown con encabezados ##, viñetas y negritas.",
+  "critical_questions": ["Pregunta crítica 1", "Pregunta crítica 2", "Pregunta crítica 3"],
+  "flashcards": [{"front": "Pregunta o concepto", "back": "Respuesta basada en evidencia"}],
+  "mcq": [{"question": "Pregunta", "options": ["A", "B", "C", "D"], "correct_index": 0, "explanation": "Explicación"}],
+  "true_false": [{"statement": "Afirmación", "is_true": true, "explanation": "Justificación"}],
+  "open_questions": [{"question": "Pregunta abierta", "model_answer": "Respuesta modelo"}]
+}
+Incluye 6 flashcards, 4 preguntas de selección múltiple, 4 de verdadero/falso y 2 abiertas.`;
+
+        parts.unshift({ text: systemPrompt });
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { temperature: 0.25, responseMimeType: 'application/json' }
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const apiMsg = errData?.error?.message || `Error HTTP ${response.status}`;
+          throw new Error(`Permiso denegado o error de API (${apiMsg}).`);
+        }
+
+        const data = await response.json();
+        const rawJsonText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawJsonText) throw new Error('Respuesta vacía del modelo.');
+
+        const parsed = JSON.parse(rawJsonText);
+        parsed._meta = {
+          id: Date.now().toString(),
+          sourceLabel,
+          sourceTypeBadge,
+          date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+        };
+
+        renderResult(parsed);
+        switchAppView('summary');
+      } catch (err) {
+        showError(err.message, /API Key|Permiso denegado|403|400/i.test(err.message));
+      } finally {
+        $('generateBtn').disabled = false;
+        $('loadingState').classList.add('hidden');
+      }
+    });
+
+    function renderResult(data) {
+      state.currentResult = data;
+      state.flashcardIndex = 0;
+      state.masteredCards = new Set();
+      state.quizAnswers = {};
+      state.tfAnswers = {};
+
+      $('emptySummaryPlaceholder').classList.add('hidden');
+      $('summaryContentWrapper').classList.remove('hidden');
+      $('emptyStudyPlaceholder').classList.add('hidden');
+      $('studyContentWrapper').classList.remove('hidden');
+
+      $('resultBadge').textContent = `${data._meta.sourceTypeBadge} • Verificado`;
+      $('resultTitle').textContent = data.title || 'Resumen';
+      $('resultTimestamp').textContent = data._meta.date;
+      $('summaryOutput').innerHTML = renderMarkdownSafe(data.summary_markdown);
+
+      const cqList = $('criticalQuestionsList');
+      cqList.innerHTML = '';
+      (data.critical_questions || []).forEach(q => {
+        const li = document.createElement('li');
+        li.textContent = q;
+        cqList.appendChild(li);
+      });
+
+      $('saveArchiveBtn').textContent = 'Guardar';
+      renderStudyModule();
+    }
+
+    function renderStudyModule() {
+      const data = state.currentResult;
+      if (!data) return;
+
+      updateStudyScores();
+      renderFlashcard();
+
+      const mcqContainer = $('mcqList');
+      mcqContainer.innerHTML = '';
+      (data.mcq || []).forEach((item, qIdx) => {
+        const box = document.createElement('div');
+        box.className = 'p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2';
+        const qTitle = document.createElement('p');
+        qTitle.className = 'text-xs font-semibold text-slate-900';
+        qTitle.textContent = `${qIdx + 1}. ${item.question}`;
+        box.appendChild(qTitle);
+
+        const exp = document.createElement('p');
+        exp.className = 'hidden text-xs p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700';
+        exp.textContent = item.explanation;
+
+        item.options.forEach((opt, oIdx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-full text-left px-3 py-2.5 rounded-xl border border-slate-300 bg-white active:bg-blue-50 text-xs text-slate-800 transition';
+          btn.textContent = opt;
+          btn.addEventListener('click', () => {
+            if (state.quizAnswers[qIdx] !== undefined) return;
+            state.quizAnswers[qIdx] = oIdx === item.correct_index;
+            box.querySelectorAll('button').forEach((b, idx) => {
+              b.disabled = true;
+              if (idx === item.correct_index) {
+                b.classList.remove('bg-white', 'border-slate-300');
+                b.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-900', 'font-semibold');
+              } else if (idx === oIdx) {
+                b.classList.remove('bg-white', 'border-slate-300');
+                b.classList.add('bg-rose-100', 'border-rose-500', 'text-rose-900');
+              }
+            });
+            exp.classList.remove('hidden');
+            updateStudyScores();
+          });
+          box.appendChild(btn);
+        });
+
+        box.appendChild(exp);
+        mcqContainer.appendChild(box);
+      });
+
+      const tfContainer = $('tfList');
+      tfContainer.innerHTML = '';
+      (data.true_false || []).forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2';
+        const stmt = document.createElement('p');
+        stmt.className = 'text-xs font-medium text-slate-900';
+        stmt.textContent = item.statement;
+        card.appendChild(stmt);
+
+        const row = document.createElement('div');
+        row.className = 'flex gap-2';
+        const feedback = document.createElement('p');
+        feedback.className = 'hidden text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200';
+
+        [true, false].forEach(val => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'flex-1 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-800';
+          b.textContent = val ? 'Verdadero' : 'Falso';
+          b.addEventListener('click', () => {
+            if (state.tfAnswers[idx] !== undefined) return;
+            const correct = val === Boolean(item.is_true);
+            state.tfAnswers[idx] = correct;
+            b.classList.remove('bg-white');
+            b.classList.add(correct ? 'bg-emerald-100' : 'bg-rose-100', correct ? 'border-emerald-500' : 'border-rose-500');
+            feedback.textContent = `${correct ? '✓ Correcto.' : '✕ Incorrecto.'} ${item.explanation}`;
+            feedback.classList.remove('hidden');
+            updateStudyScores();
+          });
+          row.appendChild(b);
+        });
+
+        card.appendChild(row);
+        card.appendChild(feedback);
+        tfContainer.appendChild(card);
+      });
+
+      const openContainer = $('openQuestionsList');
+      openContainer.innerHTML = '';
+      (data.open_questions || []).forEach((item, idx) => {
+        const box = document.createElement('div');
+        box.className = 'p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2';
+        box.innerHTML = `
+          <p class="text-xs font-semibold text-slate-900">${idx + 1}. ${item.question}</p>
+          <textarea rows="2" placeholder="Escribe tu respuesta..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white"></textarea>
+          <details class="text-xs">
+            <summary class="cursor-pointer font-semibold text-blue-600">Ver respuesta modelo</summary>
+            <p class="mt-2 p-2.5 rounded-lg bg-blue-50 text-slate-800 border border-blue-100">${item.model_answer}</p>
+          </details>
+        `;
+        openContainer.appendChild(box);
+      });
+    }
+
+    function renderFlashcard() {
+      const cards = state.currentResult?.flashcards || [];
+      if (!cards.length) return;
+      const card = cards[state.flashcardIndex];
+      $('flashcardInner').classList.remove('rotate-y-180');
+      $('flashcardFrontText').textContent = card.front;
+      $('flashcardBackText').textContent = card.back;
+      $('flashcardCounter').textContent = `${state.flashcardIndex + 1} / ${cards.length}`;
+      $('markMasteredBtn').textContent = state.masteredCards.has(state.flashcardIndex) ? '★ Dominada' : '✓ Lo domino';
+    }
+
+    $('flashcardContainer').addEventListener('click', () => $('flashcardInner').classList.toggle('rotate-y-180'));
+    $('prevCardBtn').addEventListener('click', () => {
+      const len = state.currentResult?.flashcards?.length || 1;
+      state.flashcardIndex = (state.flashcardIndex - 1 + len) % len;
+      renderFlashcard();
+    });
+    $('nextCardBtn').addEventListener('click', () => {
+      const len = state.currentResult?.flashcards?.length || 1;
+      state.flashcardIndex = (state.flashcardIndex + 1) % len;
+      renderFlashcard();
+    });
+    $('markMasteredBtn').addEventListener('click', () => {
+      if (state.masteredCards.has(state.flashcardIndex)) state.masteredCards.delete(state.flashcardIndex);
+      else state.masteredCards.add(state.flashcardIndex);
+      renderFlashcard();
+      updateStudyScores();
+    });
+    $('resetStudyBtn').addEventListener('click', () => {
+      state.masteredCards.clear();
+      state.quizAnswers = {};
+      state.tfAnswers = {};
+      state.flashcardIndex = 0;
+      renderStudyModule();
+    });
+
+    function updateStudyScores() {
+      const totalCards = state.currentResult?.flashcards?.length || 0;
+      $('flashcardScoreText').textContent = `${state.masteredCards.size} / ${totalCards}`;
+      const totalQ = (state.currentResult?.mcq?.length || 0) + (state.currentResult?.true_false?.length || 0);
+      const correctQ = Object.values(state.quizAnswers).filter(Boolean).length + Object.values(state.tfAnswers).filter(Boolean).length;
+      $('quizScoreText').textContent = `${correctQ} / ${totalQ}`;
+    }
+
+    $('shareSummaryBtn').addEventListener('click', async () => {
+      if (!state.currentResult) return;
+      const shareText = `${state.currentResult.title}\n\n${state.currentResult.summary_markdown}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: state.currentResult.title, text: shareText });
+          return;
+        } catch (_) {}
+      }
+      await navigator.clipboard.writeText(shareText);
+      $('shareSummaryBtn').textContent = '¡Copiado!';
+      setTimeout(() => ($('shareSummaryBtn').textContent = 'Compartir'), 1800);
+    });
+
+    $('copySummaryBtn').addEventListener('click', async () => {
+      if (!state.currentResult) return;
+      await navigator.clipboard.writeText(`# ${state.currentResult.title}\n\n${state.currentResult.summary_markdown}`);
+      $('copySummaryBtn').textContent = '¡Listo!';
+      setTimeout(() => ($('copySummaryBtn').textContent = 'Copiar'), 1800);
+    });
+
+    $('downloadMdBtn').addEventListener('click', () => {
+      if (!state.currentResult) return;
+      const blob = new Blob([`# ${state.currentResult.title}\n\n${state.currentResult.summary_markdown}`], { type: 'text/markdown;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${(state.currentResult.title || 'resumen').slice(0, 28).replace(/[^a-z0-9]/gi, '_')}.md`;
+      a.click();
+    });
+
+    function loadArchive() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY_ARCHIVE) || '[]'); }
+      catch { return []; }
+    }
+    function saveArchiveList(list) {
+      localStorage.setItem(STORAGE_KEY_ARCHIVE, JSON.stringify(list));
+      $('archiveCountBadge').textContent = list.length;
+      $('archiveTotalLabel').textContent = `${list.length} guardados`;
+    }
+
+    $('saveArchiveBtn').addEventListener('click', () => {
+      if (!state.currentResult) return;
+      const list = loadArchive();
+      if (!list.some(item => item._meta?.id === state.currentResult._meta?.id)) {
+        list.unshift(state.currentResult);
+        saveArchiveList(list);
+      }
+      $('saveArchiveBtn').textContent = '✓ Guardado';
+    });
+
+    function renderArchiveList(filterText = '') {
+      const list = loadArchive();
+      saveArchiveList(list);
+      const container = $('archiveListContainer');
+      container.innerHTML = '';
+
+      const filtered = list.filter(item =>
+        (item.title || '').toLowerCase().includes(filterText.toLowerCase()) ||
+        (item.summary_markdown || '').toLowerCase().includes(filterText.toLowerCase())
+      );
+
+      if (!filtered.length) {
+        container.innerHTML = '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-500">No hay resúmenes archivados.</div>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-2xl border border-slate-200 bg-white space-y-2.5 shadow-2xs';
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">${item._meta?.sourceTypeBadge || 'Archivo'}</span>
+              <h4 class="text-sm font-bold text-slate-900 mt-1">${item.title}</h4>
+              <p class="text-[11px] text-slate-400">${item._meta?.date || ''}</p>
+            </div>
+            <button type="button" data-del="${item._meta?.id}" class="text-rose-600 text-xs font-semibold px-2 py-1 rounded-lg bg-rose-50">Borrar</button>
+          </div>
+          <button type="button" data-open="${item._meta?.id}" class="w-full py-2.5 rounded-xl bg-blue-50 active:bg-blue-100 text-xs font-semibold text-blue-700">Abrir resumen y estudio</button>
+        `;
+
+        card.querySelector('[data-open]').addEventListener('click', () => {
+          renderResult(item);
+          switchAppView('summary');
+        });
+        card.querySelector('[data-del]').addEventListener('click', () => {
+          saveArchiveList(loadArchive().filter(x => x._meta?.id !== item._meta?.id));
+          renderArchiveList($('archiveSourceInput')?.value || '');
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    $('archiveSearchInput').addEventListener('input', (e) => renderArchiveList(e.target.value));
+
+    $('exportArchiveBtn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(loadArchive(), null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `docubrief_pwa_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    });
+
+    $('importArchiveInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const imported = JSON.parse(await file.text());
+        if (Array.isArray(imported)) {
+          saveArchiveList([...imported, ...loadArchive()]);
+          renderArchiveList();
+        }
+      } catch {
+        alert('Archivo JSON inválido.');
+      }
+    });
+
+    updateApiKeyIndicator();
+    saveArchiveList(loadArchive());
+  </script>
+</body>
+</html>
